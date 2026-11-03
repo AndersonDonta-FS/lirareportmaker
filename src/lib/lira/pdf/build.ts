@@ -285,6 +285,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   L.paragraph(
     "The EPA/HUD and Louisiana Administrative Code 33:111. 2803 defines lead-based paint surfaces containing 1.0 milligrams per square centimeter (1.0 mg/cm²) of surface area by the X-ray-fluorescence analyzer method, or 0.5% lead dry weight using the atomic absorption analytical method.",
   );
+  L.ensure(150); // keep heading and all four rows together
   H("Property Descriptions", "Property Description");
   L.space(4);
   const propRows: [string, Run][] = [
