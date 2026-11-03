@@ -16,27 +16,28 @@ import { COLORS, Layout, PAGE_H, PAGE_W, type Fonts, type Run } from "./layout";
 import { fileToJpeg } from "./images";
 
 const ASSET_BASE = "/lira";
-let assetCache: Promise<Record<string, ArrayBuffer>> | null = null;
+const ASSET_FILES = {
+  letterhead: "letterhead.pdf",
+  fixed: "fixed-pages.pdf",
+  signature: "sig-exec.png",
+  regular: "fonts/NotoSans-Regular.ttf",
+  bold: "fonts/NotoSans-Bold.ttf",
+  italic: "fonts/NotoSans-Italic.ttf",
+  display: "fonts/Montserrat-Bold.ttf",
+  displaySemi: "fonts/Montserrat-SemiBold.ttf",
+} as const;
+type AssetKey = keyof typeof ASSET_FILES;
+let assetCache: Promise<Record<AssetKey, ArrayBuffer>> | null = null;
 
 function loadAssets() {
   if (!assetCache) {
-    const files = {
-      letterhead: "letterhead.pdf",
-      fixed: "fixed-pages.pdf",
-      signature: "sig-exec.png",
-      regular: "fonts/NotoSans-Regular.ttf",
-      bold: "fonts/NotoSans-Bold.ttf",
-      italic: "fonts/NotoSans-Italic.ttf",
-      display: "fonts/Montserrat-Bold.ttf",
-      displaySemi: "fonts/Montserrat-SemiBold.ttf",
-    };
     assetCache = Promise.all(
-      Object.entries(files).map(async ([k, f]) => {
-        const r = await fetch(`${ASSET_BASE}/${f}`);
-        if (!r.ok) throw new Error(`Missing report asset ${f}`);
+      (Object.keys(ASSET_FILES) as AssetKey[]).map(async (k) => {
+        const r = await fetch(`${ASSET_BASE}/${ASSET_FILES[k]}`);
+        if (!r.ok) throw new Error(`Missing report asset ${ASSET_FILES[k]}`);
         return [k, await r.arrayBuffer()] as const;
       }),
-    ).then(Object.fromEntries);
+    ).then((entries) => Object.fromEntries(entries) as Record<AssetKey, ArrayBuffer>);
     assetCache.catch(() => (assetCache = null));
   }
   return assetCache;
@@ -63,6 +64,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
     serifBold: await doc.embedFont(StandardFonts.TimesRomanBold),
   };
   const [letterhead] = await doc.embedPdf(a.letterhead, [0]);
+  if (!letterhead) throw new Error("Letterhead page missing");
   const fixedDoc = await PDFDocument.load(a.fixed);
   const signature = await doc.embedPng(a.signature);
   const L = new Layout(doc, fonts, letterhead);
