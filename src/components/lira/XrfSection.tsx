@@ -26,6 +26,7 @@ export function XrfSection({ readings, onChange }: { readings: XrfReading[]; onC
 
   const handle = async (files: File[]) => {
     const f = files[0];
+    if (!f) return;
     setLoading(true);
     try {
       const { readings: rows, missing } = await parseXrfFile(f);

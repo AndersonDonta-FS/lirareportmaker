@@ -110,7 +110,7 @@ function SingleImage({ label, file, onChange, testId }: { label: string; file: F
           </Button>
         </div>
       ) : (
-        <FileDrop accept="image/*" onFiles={(f) => onChange(f[0])} testId={testId} label="Choose image" hint="JPG, PNG or phone photo" className="h-40" />
+        <FileDrop accept="image/*" onFiles={(f) => onChange(f[0] ?? null)} testId={testId} label="Choose image" hint="JPG, PNG or phone photo" className="h-40" />
       )}
     </div>
   );
@@ -143,7 +143,7 @@ function PhotoRow({
         </div>
       )}
       <div className="min-w-0 flex-1 space-y-1.5">
-        <Select value={photo.reading || undefined} onValueChange={onReading}>
+        <Select value={photo.reading} onValueChange={onReading}>
           <SelectTrigger className="h-8">
             <SelectValue placeholder="Which reading?" />
           </SelectTrigger>

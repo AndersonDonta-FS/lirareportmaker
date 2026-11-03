@@ -67,9 +67,11 @@ export function LabSection(p: Props) {
           <FileDrop
             accept="application/pdf,.pdf"
             testId="lab-input"
-            onFiles={(f) => {
-              p.onLabPdf(f[0]);
-              void readLab(f[0]);
+            onFiles={(files) => {
+              const f = files[0];
+              if (!f) return;
+              p.onLabPdf(f);
+              void readLab(f);
             }}
             label="Drop the lab report PDF here or click to choose"
             hint="All pages are added to the report"
