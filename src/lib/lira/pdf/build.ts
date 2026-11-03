@@ -20,9 +20,9 @@ const ASSET_FILES = {
   letterhead: "letterhead.pdf",
   fixed: "fixed-pages.pdf",
   signature: "sig-exec.png",
-  regular: "fonts/NotoSans-Regular.ttf",
-  bold: "fonts/NotoSans-Bold.ttf",
-  italic: "fonts/NotoSans-Italic.ttf",
+  regular: "fonts/Carlito-Regular.ttf",
+  bold: "fonts/Carlito-Bold.ttf",
+  italic: "fonts/Carlito-Italic.ttf",
   display: "fonts/Montserrat-Bold.ttf",
   displaySemi: "fonts/Montserrat-SemiBold.ttf",
 } as const;
@@ -59,8 +59,8 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
     regular: await doc.embedFont(a.regular),
     bold: await doc.embedFont(a.bold),
     italic: await doc.embedFont(a.italic),
-    display: await doc.embedFont(a.display, { subset: true }),
-    displaySemi: await doc.embedFont(a.displaySemi, { subset: true }),
+    display: await doc.embedFont(a.display),
+    displaySemi: await doc.embedFont(a.displaySemi),
     serifBold: await doc.embedFont(StandardFonts.TimesRomanBold),
   };
   const [letterhead] = await doc.embedPdf(a.letterhead, [0]);

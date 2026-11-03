@@ -126,7 +126,7 @@ export class Layout {
 
   /** Measure paragraph height without drawing. */
   measure(runs: Run[], opts: ParaOpts = {}) {
-    const size = opts.size ?? 11;
+    const size = opts.size ?? 11.5;
     const lh = size * (opts.lineGap ?? 1.38);
     const indent = (opts.indent ?? 0) + (opts.bullet ? 18 : 0);
     const maxW = (opts.width ?? this.width) - indent;
@@ -135,7 +135,7 @@ export class Layout {
 
   paragraph(runs: Run[] | string, opts: ParaOpts = {}) {
     if (typeof runs === "string") runs = [{ text: runs }];
-    const size = opts.size ?? 11;
+    const size = opts.size ?? 11.5;
     const lh = size * (opts.lineGap ?? 1.38);
     const baseX = (opts.x ?? this.left) + (opts.indent ?? 0);
     const textX = baseX + (opts.bullet ? 18 : 0);
@@ -166,7 +166,7 @@ export class Layout {
   }
 
   heading(text: string, opts: { size?: number; color?: RGB; font?: PDFFont; align?: "left" | "center"; spaceBefore?: number; spaceAfter?: number } = {}) {
-    const size = opts.size ?? 11;
+    const size = opts.size ?? 11.5;
     const font = opts.font ?? this.fonts.bold;
     this.y -= opts.spaceBefore ?? 6;
     this.ensure(size * 1.4 + 40);
