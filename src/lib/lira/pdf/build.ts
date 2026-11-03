@@ -56,9 +56,9 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const fonts: Fonts = {
-    regular: await doc.embedFont(a.regular, { subset: true }),
-    bold: await doc.embedFont(a.bold, { subset: true }),
-    italic: await doc.embedFont(a.italic, { subset: true }),
+    regular: await doc.embedFont(a.regular),
+    bold: await doc.embedFont(a.bold),
+    italic: await doc.embedFont(a.italic),
     display: await doc.embedFont(a.display, { subset: true }),
     displaySemi: await doc.embedFont(a.displaySemi, { subset: true }),
     serifBold: await doc.embedFont(StandardFonts.TimesRomanBold),
