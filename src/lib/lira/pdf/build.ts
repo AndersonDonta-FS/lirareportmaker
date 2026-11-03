@@ -442,6 +442,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
     headerBold: false,
     rowStyle: (i) => {
       const r = data.xrf[i];
+      if (!r) return undefined;
       if (isCalibration(r)) return { fill: COLORS.rowYellow };
       if (isXrfPositive(r)) return { fill: COLORS.rowRed };
       return undefined;
@@ -528,7 +529,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   divider("C", "XRF PCS Sheet");
   const copyFixed = async (idx: number) => {
     const [p] = await doc.copyPages(fixedDoc, [idx]);
-    doc.addPage(p);
+    if (p) doc.addPage(p);
   };
   await copyFixed(FIXED.pcs);
 
@@ -563,6 +564,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
     if (i % 3 === 0) L.newPage();
     onProgress(`Adding photo ${i + 1} of ${photos.length}…`);
     const p = photos[i];
+    if (!p) continue;
     const top = 700 - (i % 3) * slotH;
     let emb: PDFImage;
     try {
