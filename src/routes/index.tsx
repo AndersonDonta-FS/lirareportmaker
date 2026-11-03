@@ -317,7 +317,7 @@ function Field({ label, id, children }: { label: string; id: string; children: R
   );
 }
 
-function Mini({ label, value, tone }: { label: string; value: string; tone?: "positive" }) {
+function Mini({ label, value, tone }: { label: string; value: string; tone?: "positive" | undefined }) {
   return (
     <div className="rounded-lg border bg-background px-3 py-2.5">
       <div className={`stat-number text-xl ${tone ? "text-positive" : "text-ink"}`}>{value}</div>

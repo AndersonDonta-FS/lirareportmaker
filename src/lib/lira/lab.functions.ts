@@ -41,7 +41,7 @@ const SCHEMA = {
 } as const;
 
 export const extractLabResults = createServerFn({ method: "POST" })
-  .inputValidator((data) => InputSchema.parse(data))
+  .validator((data) => InputSchema.parse(data))
   .handler(async ({ data }): Promise<{ samples: LabSample[]; error?: string }> => {
     const { generateResponse, GatewayError } = await import("@lovable.dev/ai-gateway");
     try {

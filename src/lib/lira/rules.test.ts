@@ -31,7 +31,7 @@ describe("XRF rules", () => {
     const s = xrfSummary(rows);
     expect(s.total).toBe(3);
     expect(s.positive).toBe(1);
-    expect(s.positives[0].test).toBe("2");
+    expect(s.positives[0]?.test).toBe("2");
   });
 });
 
@@ -74,6 +74,6 @@ describe("XRF file import", () => {
       ["", "", "", ""],
     ]);
     expect(readings).toHaveLength(1);
-    expect(readings[0].pb).toBe(3.21);
+    expect(readings[0]?.pb).toBe(3.21);
   });
 });

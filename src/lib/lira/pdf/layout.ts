@@ -233,7 +233,7 @@ export class Layout {
 
     const drawRow = (cells: string[], style: RowStyle, isHeader: boolean) => {
       const font = isHeader ? (opts.headerBold === false ? this.fonts.regular : this.fonts.bold) : style.bold ? this.fonts.bold : this.fonts.regular;
-      const wrapped = cells.map((c, i) => this.wrapPlain(c ?? "", font, size, opts.columns[i].width - pad * 2));
+      const wrapped = opts.columns.map((col, i) => this.wrapPlain(cells[i] ?? "", font, size, col.width - pad * 2));
       const h = Math.max(...wrapped.map((l) => l.length)) * lh + pad * 2;
       return { font, wrapped, h };
     };
@@ -245,7 +245,7 @@ export class Layout {
       if (fill) this.page.drawRectangle({ x: x0, y: top - h, width: totalW, height: h, color: fill });
       let x = x0;
       opts.columns.forEach((col, i) => {
-        const lines = wrapped[i];
+        const lines = wrapped[i] ?? [];
         const blockH = lines.length * lh;
         const startY = opts.valign === "top" || isHeader ? top - pad : top - (h - blockH) / 2;
         lines.forEach((ln, li) => {

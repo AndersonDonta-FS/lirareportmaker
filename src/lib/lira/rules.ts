@@ -49,8 +49,8 @@ const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", 
 
 export function numberToWords(n: number): string {
   n = Math.floor(Math.abs(n));
-  if (n < 20) return ONES[n];
-  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? "-" + ONES[n % 10] : "");
+  if (n < 20) return ONES[n] ?? "";
+  if (n < 100) return (TENS[Math.floor(n / 10)] ?? "") + (n % 10 ? "-" + (ONES[n % 10] ?? "") : "");
   if (n < 1000) {
     const rest = n % 100;
     return ONES[Math.floor(n / 100)] + " hundred" + (rest ? " " + numberToWords(rest) : "");
@@ -80,7 +80,7 @@ export function hazardDescription(r: XrfReading): string {
 export function photoCaption(r: XrfReading) {
   const ext = isExterior(r);
   const sideMatch = r.locationType.match(/side\s*([a-z0-9]+)/i);
-  const side = ext ? (sideMatch ? `SIDE ${sideMatch[1].toUpperCase()}` : r.locationType) : r.room;
+  const side = ext ? (sideMatch?.[1] ? `SIDE ${sideMatch[1].toUpperCase()}` : r.locationType) : r.room;
   let component = r.location;
   if (ext && r.room && !/^wall$/i.test(r.room) && !r.location.toLowerCase().startsWith(r.room.toLowerCase())) {
     component = `${r.room} ${r.location}`;

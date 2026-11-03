@@ -43,7 +43,7 @@ export function rowsToReadings(table: unknown[][]): {
     return m.pb !== undefined && m.test !== undefined;
   });
   if (headerIdx < 0) return { readings: [], missing: ["pb", "test"] };
-  const map = mapHeaders(table[headerIdx].map((c) => String(c ?? "")));
+  const map = mapHeaders((table[headerIdx] ?? []).map((c) => String(c ?? "")));
   const get = (row: unknown[], f: Field) => {
     const i = map[f];
     return i === undefined ? "" : String(row[i] ?? "").trim();
@@ -77,7 +77,9 @@ export async function parseXrfFile(file: File) {
   const XLSX = await import("xlsx");
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const first = wb.SheetNames[0];
+  const sheet = first ? wb.Sheets[first] : undefined;
+  if (!sheet) return { readings: [], missing: ["pb", "test"] as (keyof XrfReading)[] };
   const table = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: "" });
   return rowsToReadings(table);
 }
