@@ -1,5 +1,5 @@
 import fontkit from "@pdf-lib/fontkit";
-import { PDFDocument, StandardFonts, type PDFImage } from "pdf-lib";
+import { PDFDocument, StandardFonts, type PDFEmbeddedPage, type PDFImage } from "pdf-lib";
 import type { ReportData, XrfReading } from "../types";
 import {
   countPhrase,
@@ -13,7 +13,7 @@ import {
   xrfSummary,
 } from "../rules";
 import { COLORS, Layout, PAGE_H, PAGE_W, type Fonts, type Run } from "./layout";
-import { fileToJpeg } from "./images";
+import { fileToJpeg, signatureToPng } from "./images";
 
 const ASSET_BASE = "/lira";
 const ASSET_FILES = {
@@ -66,7 +66,17 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   const [letterhead] = await doc.embedPdf(a.letterhead, [0]);
   if (!letterhead) throw new Error("Letterhead page missing");
   const fixedDoc = await PDFDocument.load(a.fixed);
-  const signature = await doc.embedPng(a.signature);
+  let signature: PDFImage;
+  if (data.credentials.signature) {
+    onProgress("Preparing signature…");
+    try {
+      signature = await doc.embedPng(await signatureToPng(data.credentials.signature));
+    } catch {
+      throw new Error("Couldn't read the signature image. Try a clear JPG or PNG.");
+    }
+  } else {
+    signature = await doc.embedPng(a.signature);
+  }
   const L = new Layout(doc, fonts, letterhead);
 
   const addr = data.address.trim() || "—";
@@ -85,8 +95,10 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
 
   const drawSignature = () => {
     L.ensure(60);
-    const w = 130;
-    const h = (signature.height / signature.width) * w;
+    // Fit inside 130 × 46 pt, the size of the original signature
+    const s = Math.min(130 / signature.width, 46 / signature.height);
+    const w = signature.width * s;
+    const h = signature.height * s;
     L.page.drawImage(signature, { x: L.left - 4, y: L.y - h, width: w, height: h });
     L.y -= h + 2;
   };
@@ -534,6 +546,49 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   };
   await copyFixed(FIXED.pcs);
 
+  /** Assessor's own certificate files on letterhead pages, or the built-in page when none. */
+  const addCertificate = async (files: File[], fallbackIdx: number) => {
+    if (!files.length) return copyFixed(fallbackIdx);
+    type Item = { emb: PDFEmbeddedPage | PDFImage; w: number; h: number; pdf: boolean };
+    const items: Item[] = [];
+    for (const f of files) {
+      try {
+        if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+          const src = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+          for (const ep of await doc.embedPdf(src, src.getPageIndices())) items.push({ emb: ep, w: ep.width, h: ep.height, pdf: true });
+        } else {
+          const img = await fileToJpeg(f, { maxDim: 2200, quality: 0.9 });
+          const emb = await doc.embedJpg(img.bytes);
+          items.push({ emb, w: emb.width, h: emb.height, pdf: false });
+        }
+      } catch {
+        throw new Error(`Couldn't read certificate file "${f.name}". Try a JPG, PNG or PDF.`);
+      }
+    }
+    const areaW = PAGE_W - 72;
+    const areaTop = 700;
+    const areaH = areaTop - 40;
+    const gap = 24;
+    for (let i = 0; i < items.length; ) {
+      const a = items[i]!;
+      const b = items[i + 1];
+      // Two wide card-style images share a page, like the sample's LDEQ page
+      const group = !a.pdf && b && !b.pdf && a.w > a.h && b.w > b.h ? [a, b] : [a];
+      L.newPage();
+      const slotH = (areaH - gap * (group.length - 1)) / group.length;
+      group.forEach((it, gi) => {
+        const s = Math.min(areaW / it.w, slotH / it.h);
+        const w = it.w * s;
+        const h = it.h * s;
+        const slotTop = areaTop - gi * (slotH + gap);
+        const opts = { x: (PAGE_W - w) / 2, y: slotTop - (slotH - h) / 2 - h, width: w, height: h };
+        if (it.pdf) L.page.drawPage(it.emb as PDFEmbeddedPage, opts);
+        else L.page.drawImage(it.emb as PDFImage, opts);
+      });
+      i += group.length;
+    }
+  };
+
   // ---------- Appendix D: Site drawing ----------
   divider("D", "Site Drawing");
   if (data.siteDrawing) {
@@ -553,8 +608,9 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
 
   // ---------- Appendix E: Certifications ----------
   divider("E", "Certifications");
-  await copyFixed(FIXED.training);
-  await copyFixed(FIXED.ldeq);
+  onProgress("Adding certifications…");
+  await addCertificate(data.credentials.training, FIXED.training);
+  await addCertificate(data.credentials.ldeq, FIXED.ldeq);
 
   // ---------- Appendix F: Photos ----------
   divider("F", "Photos of Located Lead");

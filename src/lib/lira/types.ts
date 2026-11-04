@@ -41,6 +41,19 @@ export type AssessorInfo = {
   riskAssessorCert: string; // "DR249483"
 };
 
+/**
+ * The assessor's own documents. Empty slots fall back to the built-in
+ * pages/signature from the original sample report.
+ */
+export type CredentialFiles = {
+  /** SciAps instrument training certificate (images or PDFs) */
+  training: File[];
+  /** LDEQ Lead Inspector / Risk Assessor certifications (images or PDFs) */
+  ldeq: File[];
+  /** Signature image used on the letters */
+  signature: File | null;
+};
+
 export type ResultHeadline = "auto" | "positive" | "negative";
 
 export type ReportData = {
@@ -52,6 +65,7 @@ export type ReportData = {
   inspectionDate: string; // yyyy-mm-dd
   reportDate: string; // yyyy-mm-dd
   assessor: AssessorInfo;
+  credentials: CredentialFiles;
   headline: ResultHeadline;
   coverPhoto: File | null;
   xrf: XrfReading[];

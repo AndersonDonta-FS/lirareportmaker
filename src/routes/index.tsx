@@ -10,9 +10,11 @@ import { Section, StatusPill } from "@/components/lira/Section";
 import { XrfSection } from "@/components/lira/XrfSection";
 import { LabSection } from "@/components/lira/LabSection";
 import { MediaSection } from "@/components/lira/MediaSection";
+import { CredentialsUpload } from "@/components/lira/CredentialsUpload";
 import { dustHazards, xrfSummary } from "@/lib/lira/rules";
 import { deliverFile, reportFilename } from "@/lib/lira/download";
-import type { AssessorInfo, ReportData } from "@/lib/lira/types";
+import { emptyCredentials, loadCredentials, saveCredentials } from "@/lib/lira/credential-store";
+import type { AssessorInfo, CredentialFiles, ReportData } from "@/lib/lira/types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,7 +45,7 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-const emptyReport = (assessor: AssessorInfo): ReportData => ({
+const emptyReport = (assessor: AssessorInfo, credentials: CredentialFiles = emptyCredentials()): ReportData => ({
   address: "",
   cityStateZip: "Monroe, LA 71203",
   ownerName: "",
@@ -52,6 +54,7 @@ const emptyReport = (assessor: AssessorInfo): ReportData => ({
   inspectionDate: today(),
   reportDate: today(),
   assessor,
+  credentials,
   headline: "auto",
   coverPhoto: null,
   xrf: [],
@@ -68,12 +71,13 @@ function Index() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [result, setResult] = useState<{ blob: Blob; url: string; name: string; pages: number } | null>(null);
+  const [credsLoaded, setCredsLoaded] = useState(false);
 
   const set = <K extends keyof ReportData>(k: K, v: ReportData[K]) => {
     setData((d) => ({ ...d, [k]: v }));
   };
 
-  // Remember assessor details between reports
+  // Remember assessor details, certificates and signature between reports
   useEffect(() => {
     try {
       const saved = localStorage.getItem("lira.assessor");
@@ -81,10 +85,17 @@ function Index() {
     } catch {
       /* ignore */
     }
+    loadCredentials().then((c) => {
+      set("credentials", c);
+      setCredsLoaded(true);
+    });
   }, []);
   useEffect(() => {
     localStorage.setItem("lira.assessor", JSON.stringify(data.assessor));
   }, [data.assessor]);
+  useEffect(() => {
+    if (credsLoaded) void saveCredentials(data.credentials);
+  }, [data.credentials, credsLoaded]);
 
   // Any change makes the last PDF stale
   useEffect(() => {
@@ -133,7 +144,7 @@ function Index() {
 
   const resetAll = () => {
     if (!confirm("Clear everything and start a new report?")) return;
-    setData(emptyReport(data.assessor));
+    setData(emptyReport(data.assessor, data.credentials));
   };
 
   const headlinePositive = data.headline === "auto" ? xrf.positive > 0 : data.headline === "positive";
@@ -222,7 +233,7 @@ function Index() {
             onPhotos={(p) => set("photos", p)}
           />
 
-          <Section step={5} title="Assessor" description="Saved on this computer for next time.">
+          <Section step={5} title="Assessor" description="Your name, certification numbers, certificates and signature. Saved on this computer for next time.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name (cover)" id="aname">
                 <Input id="aname" value={data.assessor.name} onChange={(e) => set("assessor", { ...data.assessor, name: e.target.value })} />
@@ -237,6 +248,16 @@ function Index() {
                 <Input id="rcert" value={data.assessor.riskAssessorCert} onChange={(e) => set("assessor", { ...data.assessor, riskAssessorCert: e.target.value })} />
               </Field>
             </div>
+            <CredentialsUpload
+              value={data.credentials}
+              onChange={(c) => set("credentials", c)}
+              defaultOwner={DEFAULT_ASSESSOR.name}
+              otherAssessor={
+                data.assessor.name.trim() !== DEFAULT_ASSESSOR.name ||
+                data.assessor.inspectorCert.trim() !== DEFAULT_ASSESSOR.inspectorCert ||
+                data.assessor.riskAssessorCert.trim() !== DEFAULT_ASSESSOR.riskAssessorCert
+              }
+            />
           </Section>
         </div>
 
