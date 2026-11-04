@@ -4,11 +4,14 @@ import type { ReportData, XrfReading } from "../types";
 import {
   countPhrase,
   dustHazards,
+  dustLeadPresent,
+  formatLongDate,
   formatShortDate,
   hazardDescription,
   isCalibration,
   isDustPositive,
   isXrfPositive,
+  pbDisplay,
   photoCaption,
   xrfSummary,
 } from "../rules";
@@ -143,52 +146,17 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
 
   // ---------- 2. Result headline ----------
   L.newPage();
-  L.centeredText(
-    lbpPositive ? "Positive: Lead-Based Paint" : "Negative: Lead-Based Paint",
-    PAGE_H / 2 - 12,
-    32,
-    fonts.serifBold,
-    lbpPositive ? COLORS.red : COLORS.text,
-  );
+  if (lbpPositive) {
+    L.centeredText("Positive: Lead-Based Paint", PAGE_H / 2 - 12, 32, fonts.serifBold, COLORS.red);
+  } else {
+    // Matches the no-lead sample: large green Times Bold, centred
+    L.centeredText("No Lead-Based Paint", 395.6, 48, fonts.serifBold, COLORS.green);
+  }
 
   // ---------- 3. Executive Summary ----------
   L.newPage();
   L.heading("Executive Summary", { size: 15, font: fonts.regular, align: "center", spaceBefore: 0, spaceAfter: 26 });
-  L.paragraph("To Whom It May Concern:", { spaceAfter: 2 });
   const dustAny = hazards.length > 0;
-  const finding =
-    lbpPositive && dustAny
-      ? "The assessment revealed the presence of lead-based paint and active lead dust hazards on the property as of the date of the inspection."
-      : lbpPositive
-        ? "The assessment revealed the presence of lead-based paint on the property; no active lead dust hazards were identified as of the date of the inspection."
-        : dustAny
-          ? "The assessment revealed active lead dust hazards on the property; no lead-based paint was identified as of the date of the inspection."
-          : "The assessment did not reveal the presence of lead-based paint or active lead dust hazards on the property as of the date of the inspection.";
-  L.paragraph(
-    [
-      { text: `This letter serves to inform you of the findings from a lead-based paint inspection and lead hazard risk assessment conducted by Risk Assessor ${A.name} on ${inspected}, at ` },
-      { text: addr, bold: true },
-      { text: `${csz ? ", " + csz : ""}. ${finding}` },
-    ],
-    { spaceAfter: 2 },
-  );
-  L.paragraph(
-    "The analytical results identified the following lead-based paint (LBP) and lead dust hazards, in accordance with the standards set by the Environmental Protection Agency (EPA) and the Louisiana Department of Environmental Quality (LDEQ):",
-    { spaceAfter: 2 },
-  );
-  L.paragraph(
-    [
-      { text: "Lead-Based Paint (XRF):", bold: true },
-      { text: " Out of " },
-      { text: countPhrase(xrf.total), bold: true },
-      { text: " X-ray fluorescence (XRF) readings taken from the residence, " },
-      xrf.positive > 0
-        ? { text: countPhrase(xrf.positive), bold: true, color: COLORS.red }
-        : { text: "none (0)", bold: true },
-      { text: ` reading${xrf.positive === 1 ? "" : "s"} tested positive for lead levels that meet or exceed the regulatory threshold for concern (greater than or equal to 1.0 milligram per square centimeter [≥ 1.0 mg/cm²]).` },
-    ],
-    { bullet: true, indent: 18, spaceAfter: 2 },
-  );
   const dustRuns: Run[] = [
     { text: "Lead Dust Hazards:", bold: true },
     { text: " In accordance with the " },
@@ -215,13 +183,67 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
     });
     dustRuns.push({ text: "." });
   }
-  L.paragraph(dustRuns, { bullet: true, indent: 18, spaceAfter: 2 });
-  L.paragraph(
-    lbpPositive || dustAny
-      ? "All identified lead-based paint components and lead dust hazards must be addressed by EPA-certified lead abatement contractors and trained professionals using lead-safe work practices."
-      : "No lead-based paint hazard control activities are required at this time based on these findings.",
-    { spaceAfter: 10 },
-  );
+
+  if (lbpPositive) {
+    L.paragraph("To Whom It May Concern:", { spaceAfter: 2 });
+    const finding = dustAny
+      ? "The assessment revealed the presence of lead-based paint and active lead dust hazards on the property as of the date of the inspection."
+      : "The assessment revealed the presence of lead-based paint on the property; no active lead dust hazards were identified as of the date of the inspection.";
+    L.paragraph(
+      [
+        { text: `This letter serves to inform you of the findings from a lead-based paint inspection and lead hazard risk assessment conducted by Risk Assessor ${A.name} on ${inspected}, at ` },
+        { text: addr, bold: true },
+        { text: `${csz ? ", " + csz : ""}. ${finding}` },
+      ],
+      { spaceAfter: 2 },
+    );
+    L.paragraph(
+      "The analytical results identified the following lead-based paint (LBP) and lead dust hazards, in accordance with the standards set by the Environmental Protection Agency (EPA) and the Louisiana Department of Environmental Quality (LDEQ):",
+      { spaceAfter: 2 },
+    );
+    L.paragraph(
+      [
+        { text: "Lead-Based Paint (XRF):", bold: true },
+        { text: " Out of " },
+        { text: countPhrase(xrf.total), bold: true },
+        { text: " X-ray fluorescence (XRF) readings taken from the residence, " },
+        xrf.positive > 0
+          ? { text: countPhrase(xrf.positive), bold: true, color: COLORS.red }
+          : { text: "none (0)", bold: true },
+        { text: ` reading${xrf.positive === 1 ? "" : "s"} tested positive for lead levels that meet or exceed the regulatory threshold for concern (greater than or equal to 1.0 milligram per square centimeter [≥ 1.0 mg/cm²]).` },
+      ],
+      { bullet: true, indent: 18, spaceAfter: 2 },
+    );
+    L.paragraph(dustRuns, { bullet: true, indent: 18, spaceAfter: 2 });
+    L.paragraph(
+      "All identified lead-based paint components and lead dust hazards must be addressed by EPA-certified lead abatement contractors and trained professionals using lead-safe work practices.",
+      { spaceAfter: 10 },
+    );
+  } else {
+    // No-lead layout, following the 400 Tanglewood Dr sample
+    L.paragraph("To Whom It May Concern:", { spaceAfter: 12 });
+    const finding = dustAny
+      ? "The assessment did not reveal the presence of lead-based paint; however, lead dust hazards were identified on the property as of the date of the inspection."
+      : "The assessment did not reveal the presence of lead-based paint or lead hazards on the property as of the date of the inspection.";
+    L.paragraph(
+      `This letter serves to inform you of the findings from a lead-based paint inspection and lead hazard risk assessment conducted by Risk Assessor ${A.name} on ${formatLongDate(data.inspectionDate)}, at ${addr}${csz ? ", " + csz : ""}. ${finding}`,
+      { spaceAfter: 12 },
+    );
+    L.paragraph(
+      [
+        { text: `The analytical results identified the following lead-based paint (LBP) and lead hazards, in accordance with the standards set by the Environmental Protection Agency (EPA) and the Louisiana Department of Environmental Quality (LDEQ): Out of ${countPhrase(xrf.total)} X-ray fluorescence (XRF) readings taken from the residence, ` },
+        { text: countPhrase(xrf.positive), color: COLORS.red },
+        { text: ` reading${xrf.positive === 1 ? "" : "s"} tested positive for lead levels that meet or exceed the EPA's threshold for concern (greater than or equal to 1.0 milligram per square centimeter [≥ 1.0 mg/cm²]).` },
+        ...(xrf.positive === 0 ? [{ text: " No positive readings were detected on the residence." }] : []),
+      ],
+      { spaceAfter: 12 },
+    );
+    if (dustAny) L.paragraph(dustRuns, { spaceAfter: 12 });
+    L.paragraph(
+      "All identified lead-based paint and lead hazards should be addressed by certified lead abatement contractors and trained professionals.",
+      { spaceAfter: 10 },
+    );
+  }
   L.page.drawLine({ start: { x: L.left, y: L.y }, end: { x: L.right, y: L.y }, thickness: 0.6, color: COLORS.rule });
   L.space(22);
   L.paragraph("Thank you for your attention to this matter.", { spaceAfter: 12 });
@@ -230,11 +252,12 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   L.paragraph("Planning & Urban Development", { spaceAfter: 0 });
   L.paragraph(A.fullName, { spaceAfter: 0 });
   L.paragraph(`Risk Assessor, (LDEQ #${A.inspectorCert} /#${A.riskAssessorCert})`, { spaceAfter: 0 });
+  if (!lbpPositive) L.paragraph("City of Monroe: Planning & Urban Development", { spaceAfter: 0 });
 
   // ---------- 4. Letter to the Owner ----------
   L.newPage();
-  L.paragraph("City of Monroe: Planning & Urban Development", { spaceAfter: 14 });
-  L.heading("Letter to the Owner", { size: 14, font: fonts.regular, align: "center", spaceBefore: 0, spaceAfter: 30 });
+  if (lbpPositive) L.paragraph("City of Monroe: Planning & Urban Development", { spaceAfter: 14 });
+  L.heading("Letter to the Owner", { size: 14, font: fonts.regular, align: "center", spaceBefore: lbpPositive ? 0 : 22, spaceAfter: 30 });
   L.paragraph(reported, { spaceAfter: 0 });
   L.paragraph(data.ownerName || "Property Owner", { spaceAfter: 0 });
   L.paragraph(addr, { spaceAfter: 0 });
@@ -258,15 +281,18 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   L.newPage();
   L.page.drawText("APPENDICES", { x: L.left, y: L.y - 28, size: 26, font: fonts.display });
   L.y -= 70;
+  // No-lead reports have no photos appendix, so the glossary and resources move up a letter
+  const glossaryLetter = lbpPositive ? "G" : "F";
+  const resourcesLetter = lbpPositive ? "H" : "G";
   const appendices = [
     "Appendix A- Lead-based Paint XRF Results",
     "Appendix B- Laboratory Analytical Results",
     "Appendix C- XRF Performance Characteristics Sheet",
     "Appendix D- Site Drawing",
     "Appendix E- Certification",
-    "Appendix F- Photos of Located Lead",
-    "Appendix G- Lead Safety Glossary",
-    "Appendix H- Additional Resources",
+    ...(lbpPositive ? ["Appendix F- Photos of Located Lead"] : []),
+    `Appendix ${glossaryLetter}- Lead Safety Glossary`,
+    `Appendix ${resourcesLetter}- Additional Resources`,
   ];
   for (const ap of appendices) L.paragraph(ap, { spaceAfter: 22 });
 
@@ -343,7 +369,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
 
   H("Dust Wipe Findings", "Dust Wipe Findings");
   const dustRows = data.dust.length
-    ? data.dust.map((d) => [d.id, d.location, d.surface, d.result, isDustPositive(d.result) ? "Positive" : "Negative"])
+    ? data.dust.map((d) => [d.id, d.location, d.surface, d.result, dustLeadPresent(d)])
     : [["N/A", "No dust wipe samples", "", "", ""]];
   L.table({
     columns: [
@@ -356,7 +382,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
     rows: dustRows,
     size: 9,
     headerBold: false,
-    rowStyle: (i) => (data.dust[i] && isDustPositive(data.dust[i].result) ? { color: COLORS.red } : undefined),
+    rowStyle: (i) => (data.dust[i] && dustLeadPresent(data.dust[i]) === "Positive" ? { color: COLORS.red } : undefined),
   });
   L.space(14);
 
@@ -420,49 +446,60 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   L.page.drawText("Models:", { x: L.left, y: L.y - 36, size: 9.5, font: fonts.bold });
   L.page.drawText("Model X-550", { x: L.left + 42, y: L.y - 36, size: 9.5, font: fonts.italic });
   L.y -= 52;
-  L.table({
-    x: 24,
-    columns: [
-      { header: "Date", width: 48, align: "center" },
-      { header: "Test #", width: 26, align: "center" },
-      { header: "Serial #", width: 56, align: "center" },
-      { header: "Location Type", width: 70, align: "center" },
-      { header: "Room", width: 48, align: "center" },
-      { header: "Location", width: 54, align: "center" },
-      { header: "Pb", width: 26, align: "center" },
-      { header: "Pb Pos/Neg", width: 46, align: "center" },
-      { header: "Unit Type", width: 40, align: "center" },
-      { header: "Substrate", width: 46, align: "center" },
-      { header: "Condition", width: 54, align: "center" },
-      { header: "Color", width: 50, align: "center" },
-    ],
-    rows: data.xrf.map((r) => [
-      r.date,
-      r.test,
-      r.serial,
-      r.locationType,
-      r.room,
-      r.location,
-      r.pb === null ? "" : String(r.pb),
-      r.posNeg || (isXrfPositive(r) ? "Positive" : "Negative"),
-      r.unit,
-      r.substrate,
-      r.condition,
-      r.color,
-    ]),
-    size: 7.5,
-    pad: 2,
-    headerBold: false,
-    rowStyle: (i) => {
-      const r = data.xrf[i];
-      if (!r) return undefined;
-      if (isCalibration(r)) return { fill: COLORS.rowYellow };
-      if (isXrfPositive(r)) return { fill: COLORS.rowRed };
-      return undefined;
-    },
-  });
+  {
+    // Columns the export didn't include (all blank) are left out, so a short
+    // export (Date, Test #, Calibration Model/Matrix ID, Pb, Unit, P/F) prints
+    // as a full-width table like the no-lead sample.
+    type Col = { key: keyof XrfReading; header: string; full: number; weight: number; value: (r: XrfReading) => string };
+    const allCols: Col[] = [
+      { key: "date", header: "Date", full: 48, weight: 102, value: (r) => r.date },
+      { key: "test", header: "Test #", full: 26, weight: 38, value: (r) => r.test },
+      { key: "serial", header: "Serial #", full: 56, weight: 60, value: (r) => r.serial },
+      { key: "locationType", header: "Location Type", full: 70, weight: 166, value: (r) => r.locationType },
+      { key: "room", header: "Room", full: 48, weight: 70, value: (r) => r.room },
+      { key: "location", header: "Location", full: 54, weight: 80, value: (r) => r.location },
+      { key: "pb", header: "Pb", full: 26, weight: 30, value: pbDisplay },
+      { key: "posNeg", header: "Pb Pos/Neg", full: 46, weight: 70, value: (r) => r.posNeg || (isXrfPositive(r) ? "Positive" : "Negative") },
+      { key: "unit", header: "Unit Type", full: 40, weight: 67, value: (r) => r.unit },
+      { key: "substrate", header: "Substrate", full: 46, weight: 60, value: (r) => r.substrate },
+      { key: "condition", header: "Condition", full: 54, weight: 60, value: (r) => r.condition },
+      { key: "color", header: "Color", full: 50, weight: 60, value: (r) => r.color },
+    ];
+    const always = new Set<keyof XrfReading>(["date", "test", "pb", "posNeg", "unit"]);
+    const cols = allCols.filter((c) => always.has(c.key) || data.xrf.some((r) => c.value(r).trim() !== ""));
+    const compact = cols.length < allCols.length;
+    const noRoomOrLocation = !cols.some((c) => c.key === "room" || c.key === "location");
+    const header = (c: Col) => {
+      if (!noRoomOrLocation) return c.header;
+      if (c.key === "locationType") return "Calibration Model/Matrix ID";
+      if (c.key === "posNeg") return "Pb P/F";
+      if (c.key === "unit") return "Unit type";
+      return c.header;
+    };
+    const totalWeight = cols.reduce((s, c) => s + c.weight, 0);
+    L.table({
+      x: compact ? L.left : 24,
+      columns: cols.map((c) => ({
+        header: header(c),
+        width: compact ? (c.weight / totalWeight) * L.width : c.full,
+        align: "center" as const,
+      })),
+      rows: data.xrf.map((r) => cols.map((c) => c.value(r))),
+      size: compact ? (cols.length <= 7 ? 9.5 : 8.5) : 7.5,
+      pad: 2,
+      headerBold: false,
+      rowStyle: (i) => {
+        const r = data.xrf[i];
+        if (!r) return undefined;
+        if (isCalibration(r)) return compact ? { color: COLORS.red } : { fill: COLORS.rowYellow };
+        if (isXrfPositive(r)) return { fill: COLORS.rowRed };
+        return undefined;
+      },
+    });
+  }
 
-  // Hazard control summary
+  // Hazard control summary — only when lead-based paint was found
+  if (lbpPositive) {
   L.newPage();
   L.heading("Summary of Lead-Based Paint Hazard Control Options", { size: 11, spaceBefore: 30, spaceAfter: 2 });
   L.paragraph(
@@ -518,6 +555,7 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
     });
   } else {
     L.paragraph([{ text: "No positive XRF readings were identified. No lead-based paint hazard control measures are required.", bold: true }]);
+  }
   }
 
   // ---------- Appendix B: Lab ----------
@@ -612,7 +650,8 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
   await addCertificate(data.credentials.training, FIXED.training);
   await addCertificate(data.credentials.ldeq, FIXED.ldeq);
 
-  // ---------- Appendix F: Photos ----------
+  // ---------- Appendix F: Photos (lead-positive reports only) ----------
+  if (lbpPositive) {
   divider("F", "Photos of Located Lead");
   const byTest = new Map<string, XrfReading>(data.xrf.map((r) => [r.test, r]));
   const photos = [...data.photos].sort((a, b) => (parseFloat(a.reading) || 0) - (parseFloat(b.reading) || 0));
@@ -653,11 +692,12 @@ export async function buildReport(data: ReportData, onProgress: BuildProgress = 
       L.page.drawText(ln, { x: 290, y: top - 11 - li * 16, size: 10.5, font: fonts.regular });
     });
   }
+  }
 
-  // ---------- Appendix G / H ----------
-  divider("G", "Lead Safety Glossary");
+  // ---------- Glossary / Resources ----------
+  divider(glossaryLetter, "Lead Safety Glossary");
   await copyFixed(FIXED.glossary);
-  divider("H", "Additional Resources");
+  divider(resourcesLetter, "Additional Resources");
   await copyFixed(FIXED.resources);
 
   // ---------- TOC ----------

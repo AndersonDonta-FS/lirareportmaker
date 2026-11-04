@@ -51,7 +51,8 @@ export const extractLabResults = createServerFn({ method: "POST" })
           "You read EPA lead dust-wipe laboratory reports (e.g. EMSL). Extract every client dust wipe sample with its lead result. " +
           "Use the Client Sample ID number as id and the description after the slash as location (e.g. '1/Foyer Floor' → id '1', location 'Foyer Floor'). " +
           "Report results like '<2.0 µg/ft²' as '<2' and numeric results like '2.9 µg/ft²' as '2.9'. " +
-          "If the chain-of-custody pages list the surface (tile, carpet, wood, concrete, vinyl), include it; otherwise leave surface empty. Skip blanks/QC samples.",
+          "If the chain-of-custody pages list the surface (tile, carpet, wood, concrete, vinyl), include it; otherwise leave surface empty. " +
+          "If a field blank is numbered among the client samples, include it with location 'Blank' and surface 'N/A'. Skip laboratory QC samples.",
         input: [
           {
             role: "user",

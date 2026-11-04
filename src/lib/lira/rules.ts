@@ -3,16 +3,22 @@ import type { DustSample, XrfReading } from "./types";
 /** EPA/HUD/LDEQ action level for lead-based paint by XRF, mg/cm² */
 export const XRF_ACTION_LEVEL = 1.0;
 
+/** Calibration checks: "CALIBRATION", "PCS Cal", "Calib Check"… */
 export function isCalibration(r: XrfReading): boolean {
-  return /calib/i.test(r.locationType);
+  return /calib|\bcal\b/i.test(r.locationType);
 }
 
 /** A reading is positive when the analyzer flagged it, or (if no flag) Pb ≥ 1.0 mg/cm². */
 export function isXrfPositive(r: XrfReading): boolean {
   const flag = r.posNeg.trim().toLowerCase();
-  if (flag.startsWith("pos")) return true;
-  if (flag.startsWith("neg")) return false;
+  if (flag.startsWith("pos") || flag === "p" || flag === "fail") return true;
+  if (flag.startsWith("neg") || flag === "n" || flag === "pass") return false;
   return r.pb !== null && r.pb >= XRF_ACTION_LEVEL;
+}
+
+/** Pb value as printed in the XRF table: the number, or the analyzer's text such as "ND". */
+export function pbDisplay(r: XrfReading): string {
+  return r.pb !== null ? String(r.pb) : (r.pbText ?? "");
 }
 
 /** Positive readings that count as hazards (calibration checks excluded). */
@@ -37,8 +43,19 @@ export function isDustPositive(result: string): boolean {
   return Number.isFinite(n) && n > 0;
 }
 
+/** Field blank (quality-control wipe): listed in the table, but never a hazard. */
+export function isBlankSample(s: DustSample): boolean {
+  return /\bblank\b/i.test(`${s.location} ${s.surface}`);
+}
+
+/** "Lead Present" column: Positive / Negative, or N/A for a field blank. */
+export function dustLeadPresent(s: DustSample): string {
+  if (isBlankSample(s)) return "N/A";
+  return isDustPositive(s.result) ? "Positive" : "Negative";
+}
+
 export function dustHazards(samples: DustSample[]): DustSample[] {
-  return samples.filter((s) => isDustPositive(s.result));
+  return samples.filter((s) => !isBlankSample(s) && isDustPositive(s.result));
 }
 
 const ONES = [
@@ -101,4 +118,13 @@ export function formatShortDate(iso: string): string {
   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return iso;
   return `${Number(m[2])}/${Number(m[3])}/${m[1]}`;
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** yyyy-mm-dd → "May 5, 2026" */
+export function formatLongDate(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${MONTHS[Number(m[2]) - 1] ?? ""} ${Number(m[3])}, ${m[1]}`;
 }

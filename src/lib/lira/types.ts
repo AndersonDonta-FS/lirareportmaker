@@ -6,6 +6,8 @@ export type XrfReading = {
   room: string;
   location: string;
   pb: number | null;
+  /** Non-numeric Pb text from the analyzer, e.g. "ND" (not detected) */
+  pbText?: string;
   posNeg: string;
   unit: string;
   substrate: string;

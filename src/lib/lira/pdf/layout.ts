@@ -7,6 +7,8 @@ export const COLORS = {
   text: rgb(0, 0, 0),
   heading: rgb(0.08, 0.3, 0.62),
   red: rgb(0.93, 0.05, 0.05),
+  /** Word "green" (#00B050) used for the no-lead headline */
+  green: rgb(0, 0.69, 0.314),
   rowRed: rgb(1, 0, 0),
   rowYellow: rgb(1, 1, 0),
   border: rgb(0, 0, 0),

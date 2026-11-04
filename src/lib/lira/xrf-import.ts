@@ -6,8 +6,8 @@ const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9/#]+/g, " ").trim()
 
 // Order matters: more specific matchers claim their column first.
 const MATCHERS: [Field, (h: string) => boolean][] = [
-  ["posNeg", (h) => /pos\s*\/\s*neg|positive|negative|classification/.test(h) || h === "result" || h === "pb result"],
-  ["locationType", (h) => h.includes("location type") || h === "side" || h === "area type"],
+  ["posNeg", (h) => /pos\s*\/\s*neg|p\s*\/\s*f|pass|fail|positive|negative|classification/.test(h) || h === "result" || h === "pb result"],
+  ["locationType", (h) => h.includes("location type") || h === "side" || h === "area type" || h.includes("calibration") || h.includes("matrix")],
   ["unit", (h) => h.startsWith("unit")],
   ["pb", (h) => /^pb\b|lead|concentration|mg\s*cm/.test(h)],
   ["test", (h) => /^test|^reading|^#$|^no$|^sample/.test(h)],
@@ -62,6 +62,7 @@ export function rowsToReadings(table: unknown[][]): {
       room: get(row, "room"),
       location: get(row, "location"),
       pb: Number.isFinite(pbNum) ? pbNum : null,
+      ...(Number.isFinite(pbNum) || !pbRaw ? {} : { pbText: pbRaw }),
       posNeg: get(row, "posNeg"),
       unit: get(row, "unit") || "mg/cm2",
       substrate: get(row, "substrate"),
