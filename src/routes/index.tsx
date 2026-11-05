@@ -282,12 +282,12 @@ function Index() {
                   <SelectContent>
                     <SelectItem value="auto">Automatic (from XRF)</SelectItem>
                     <SelectItem value="positive">Positive: Lead-Based Paint</SelectItem>
-                    <SelectItem value="negative">Negative: Lead-Based Paint</SelectItem>
+                    <SelectItem value="negative">No Lead-Based Paint</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="mt-2">
                   <StatusPill tone={headlinePositive ? "positive" : "negative"}>
-                    {headlinePositive ? "Positive: Lead-Based Paint" : "Negative: Lead-Based Paint"}
+                    {headlinePositive ? "Positive: Lead-Based Paint" : "No Lead-Based Paint"}
                   </StatusPill>
                 </div>
               </div>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   countPhrase,
+  dustHazards,
+  dustLeadPresent,
   hazardDescription,
   isDustPositive,
   isXrfPositive,
@@ -75,5 +77,26 @@ describe("XRF file import", () => {
     ]);
     expect(readings).toHaveLength(1);
     expect(readings[0]?.pb).toBe(3.21);
+  });
+});
+
+describe("no-lead report inputs", () => {
+  it("PCS Cal rows count as calibration and never as hazards", () => {
+    const rows = [r({ locationType: "PCS Cal", pb: 1.1, posNeg: "Positive" }), r({ pb: 0.2, posNeg: "Negative" })];
+    expect(xrfSummary(rows).positive).toBe(0);
+  });
+  it("reads the Pb P/F column and keeps ND as text", () => {
+    const { readings } = rowsToReadings([
+      ["Test #", "Pb", "Pb P/F", "Location Type"],
+      ["5", "ND", "Negative", "Interior"],
+    ]);
+    expect(readings[0]?.pb).toBeNull();
+    expect(readings[0]?.pbText).toBe("ND");
+    expect(isXrfPositive(readings[0]!)).toBe(false);
+  });
+  it("a field blank is listed as N/A and is never a hazard", () => {
+    const blank = { id: "13", location: "Blank", surface: "N/A", result: "2.5" };
+    expect(dustLeadPresent(blank)).toBe("N/A");
+    expect(dustHazards([blank])).toHaveLength(0);
   });
 });
